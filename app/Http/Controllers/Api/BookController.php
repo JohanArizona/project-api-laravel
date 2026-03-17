@@ -3,124 +3,89 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\Book;
 use App\Http\Resources\BookResource;
+use App\Models\Book;
+use Illuminate\Http\Request;
 
 class BookController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     */
     public function index()
     {
-        $books = Book::all();
-        return response()->json([
-            'success' => true,
-            'message' => 'List Data Books',
-            'data' => $books
-        ], 200);
+        $books = Book::latest()->paginate(10);
+
+        return new BookResource(true, 'Daftar Buku', $books);
     }
 
+    /**
+     * Store a newly created resource in storage.
+     */
     public function store(Request $request)
     {
-        $this->validate($request, [
-            'title' => 'required',
-            'author' => 'required',
-            'publisher' => 'required',
-            'year' => 'required|integer',
+        $validated = $request->validate([
+            'title'     => 'required|string|max:255',
+            'author'    => 'required|string|max:150',
+            'publisher' => 'required|string|max:150',
+            'year'      => 'required|integer|min:1900|max:' . (date('Y') + 5),
         ]);
 
-        $book = Book::create([
-            'title' => $request->title,
-            'author' => $request->author,
-            'publisher' => $request->publisher,
-            'year' => $request->year,
-        ]);
+        $book = Book::create($validated);
 
-        if ($book) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Book Created',
-                'data' => $book
-            ], 201);
-        } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'Book Failed to Save',
-                'data' => null
-            ], 400);
-        }
+        return new BookResource(true, 'Buku berhasil ditambahkan', $book);
     }
 
+    /**
+     * Display the specified resource.
+     */
     public function show($id)
     {
         $book = Book::find($id);
 
-        if ($book) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Book Detail',
-                'data' => $book
-            ], 200);
-        } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'Book Not Found',
-                'data' => null
-            ], 404);
+        if (!$book) {
+            return new BookResource(false, 'Buku tidak ditemukan', null);
         }
+
+        return new BookResource(true, 'Detail Buku', $book);
     }
 
+    /**
+     * Update the specified resource in storage.
+     */
     public function update(Request $request, $id)
     {
-        $this->validate($request, [
-            'title' => 'required',
-            'author' => 'required',
-            'publisher' => 'required',
-            'year' => 'required|integer',
-        ]);
-
         $book = Book::find($id);
 
-        if ($book) {
-            $book->update([
-                'title' => $request->title,
-                'author' => $request->author,
-                'publisher' => $request->publisher,
-                'year' => $request->year,
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Book Updated',
-                'data' => $book
-            ], 200);
-        } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'Book Not Found',
-                'data' => null
-            ], 404);
+        if (!$book) {
+            return new BookResource(false, 'Buku tidak ditemukan', null);
         }
+
+        $validated = $request->validate([
+            'title'     => 'required|string|max:255',
+            'author'    => 'required|string|max:150',
+            'publisher' => 'required|string|max:150',
+            'year'      => 'required|integer|min:1900|max:' . (date('Y') + 5),
+        ]);
+
+        $book->update($validated);
+
+        return new BookResource(true, 'Buku berhasil diperbarui', $book);
     }
 
-     public function destroy($id)
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy($id)
     {
         $book = Book::find($id);
 
-        if ($book) {
-            $book->delete();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Book Deleted',
-                'data' => null
-            ], 200);
-        } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'Book Not Found',
-                'data' => null
-            ], 404);
+        if (!$book) {
+            return new BookResource(false, 'Buku tidak ditemukan', null);
         }
+
+        $book->delete();
+
+        return new BookResource(true, 'Buku berhasil dihapus', null);
     }
-    //
 }
